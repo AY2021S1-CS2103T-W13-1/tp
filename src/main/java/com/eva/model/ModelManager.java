@@ -13,6 +13,10 @@ import java.util.logging.Logger;
 
 import com.eva.commons.core.GuiSettings;
 import com.eva.commons.core.LogsCenter;
+import com.eva.commons.core.PanelState;
+import com.eva.commons.util.DateUtil;
+import com.eva.model.current.view.CurrentViewApplicant;
+import com.eva.model.current.view.CurrentViewStaff;
 import com.eva.model.person.Person;
 import com.eva.model.person.applicant.Applicant;
 import com.eva.model.person.staff.Staff;
@@ -34,6 +38,9 @@ public class ModelManager implements Model {
     private final FilteredList<Person> filteredPersons;
     private final FilteredList<Staff> filteredStaffs;
     private final FilteredList<Applicant> filteredApplicants;
+    private CurrentViewStaff currentViewStaff;
+    private CurrentViewApplicant currentViewApplicant;
+
 
     /**
      * Initializes a ModelManager with the given addressBook and userPrefs.
@@ -55,6 +62,9 @@ public class ModelManager implements Model {
         filteredPersons = new FilteredList<>(this.personDatabase.getPersonList());
         filteredStaffs = new FilteredList<>(this.staffDatabase.getPersonList());
         filteredApplicants = new FilteredList<>(this.applicantDatabase.getPersonList());
+
+        this.currentViewStaff = new CurrentViewStaff();
+        this.currentViewApplicant = new CurrentViewApplicant();
     }
 
     public ModelManager() {
@@ -83,6 +93,34 @@ public class ModelManager implements Model {
     public void setGuiSettings(GuiSettings guiSettings) {
         requireNonNull(guiSettings);
         userPrefs.setGuiSettings(guiSettings);
+    }
+
+    @Override
+    public PanelState getPanelState() {
+        return userPrefs.getPanelState();
+    }
+
+    @Override
+    public void setPanelState(PanelState panelState) {
+        userPrefs.setPanelState(panelState);
+    }
+
+    @Override
+    public void setCurrentViewStaff(CurrentViewStaff currentViewStaff) {
+        if (currentViewStaff.getCurrentView().isPresent()) {
+            this.currentViewStaff = currentViewStaff;
+        } else {
+            throw new IllegalArgumentException(); // placeholder exception
+        }
+    }
+
+    @Override
+    public void setCurrentViewApplicant(CurrentViewApplicant currentViewApplicant) {
+        if (currentViewApplicant.getCurrentView().isPresent()) {
+            this.currentViewApplicant = currentViewApplicant;
+        } else {
+            throw new IllegalArgumentException(); // placeholder exception
+        }
     }
 
     @Override
@@ -176,6 +214,17 @@ public class ModelManager implements Model {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public boolean hasLeavePeriod(Staff target, Leave toCheck) {
+        List<LocalDate> leaveDates = DateUtil.getDatesBetween(toCheck.getStartDate(), toCheck.getEndDate());
+        for (LocalDate date : leaveDates) {
+            if (hasLeaveDate(target, date).isPresent()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -283,6 +332,11 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public CurrentViewStaff getCurrentViewStaff() {
+        return currentViewStaff;
+    }
+
+    @Override
     public void updateFilteredStaffList(Predicate<Staff> predicate) {
         requireNonNull(predicate);
         filteredStaffs.setPredicate(predicate);
@@ -297,6 +351,11 @@ public class ModelManager implements Model {
     @Override
     public ObservableList<Applicant> getFilteredApplicantList() {
         return filteredApplicants;
+    }
+
+    @Override
+    public CurrentViewApplicant getCurrentViewApplicant() {
+        return currentViewApplicant;
     }
 
     @Override
